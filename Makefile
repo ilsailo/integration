@@ -1,41 +1,44 @@
-# 컴파일러 및 옵션 설정
+# make            # main_system 생성
+# make test_queue # 큐 무결성 테스트만
+# make test_rule  # 룰 모듈 로직 테스트만
+
+# 1. 컴파일러 및 옵션 설정
 CC = gcc
-CFLAGS = -Wall -Wextra -O2
-LDFLAGS = -lrt
+CFLAGS = -Wall -Wextra -g -pthread  # -g: 디버깅 정보 포함, -pthread: 스레드 지원
+LDFLAGS = -pthread
 
-# 생성할 실행 파일(타겟) 목록
-TARGETS = main th_module vital_module db_module send_module
+# 2. 파일 이름 정의
+TARGET = main_system
+TEST_Q_TARGET = test_queue
+TEST_RULE_TARGET = test_rule
 
-# 모든 타겟 빌드
-all: $(TARGETS)
+# 공통 소스 파일 (테스트와 메인 모두에서 사용)
+COMMON_SRCS = queue.c
+MODULE_SRCS = th_module.c vital_module.c rule_module.c db_module.c send_module.c
+MAIN_SRCS = main.c
 
-# 1. 마스터 관리 프로세스 빌드
-main: main.c main.h
-	$(CC) $(CFLAGS) -o main main.c $(LDFLAGS)
+# 3. 빌드 규칙
+.PHONY: all clean test
 
-# 2. 온·습도 수집 모듈 빌드
-th_module: th_module.c main.h
-	$(CC) $(CFLAGS) -o th_module th_module.c $(LDFLAGS)
+# 기본 빌드: 전체 시스템 생성
+all: $(TARGET)
 
-# 3. 워치 데이터 수집 모듈 빌드
-vital_module: vital_module.c main.h
-	$(CC) $(CFLAGS) -o vital_module vital_module.c $(LDFLAGS)
+$(TARGET): $(MAIN_SRCS) $(COMMON_SRCS) $(MODULE_SRCS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-# 4. 내/외부 DB 적재 모듈 빌드
-db_module: db_module.c main.h
-	$(CC) $(CFLAGS) -o db_module db_module.c $(LDFLAGS)
+# --- 4. 단위 테스트 빌드 규칙 ---
 
-# 5. 판단 정보 전송 모듈 빌드
-send_module: send_module.c main.h
-	$(CC) $(CFLAGS) -o send_module send_module.c $(LDFLAGS)
+# 큐 무결성 테스트 빌드
+$(TEST_Q_TARGET): test_queue.c $(COMMON_SRCS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-# 빌드 결과물 삭제 (정리)
+# 룰 모듈 로직 테스트 빌드 (검증할 모듈 파일도 함께 링크)
+$(TEST_RULE_TARGET): test_rule.c $(COMMON_SRCS) rule_module.c
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+# 모든 테스트 한꺼번에 빌드 명령
+test: $(TEST_Q_TARGET) $(TEST_RULE_TARGET)
+
+# 5. 정리 규칙
 clean:
-	rm -f $(TARGETS)
-	@echo "모든 바이너리 파일이 삭제되었습니다."
-
-# 실행 방법 안내
-help:
-	@echo "사용 가능한 명령어:"
-	@echo "  make       : 모든 모듈 빌드"
-	@echo "  make clean : 빌드된 파일 삭제"
+	rm -f $(TARGET) $(TEST_Q_TARGET) $(TEST_RULE_TARGET) *.o
