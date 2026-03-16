@@ -7,61 +7,41 @@
 #include <string.h>
 #include <time.h>
 
-/* --- [1] DB 테이블별 데이터 구조체 (물리 설계 반영) --- */
+/* --- [1] DB 테이블별 데이터 구조체 --- */
 
-// 1. 온습도 데이터 (th_trans 테이블 매핑)
 typedef struct {
-    int sen_id;         // 센서_id (PK, FK)
-    int wp_id;          // 작업장_id (FK)
-    float temp;         // 온도
-    float humd;         // 습도
-    time_t time;        // 시간 (DATETIME 대응)
+    int sen_id; int wp_id; float temp; float humd; time_t time;
 } THData;
 
-// 2. 워치 생체 데이터 (wd_trans 테이블 매핑)
 typedef struct {
-    int sen_id;         // 센서_id (PK, FK)
-    int wp_id;          // 작업장_id (FK)
-    float sk_temp;      // 피부온도
-    float hr;           // 심박수
-    time_t time;        // 시간 (DATETIME 대응)
+    int sen_id; int wp_id; float sk_temp; float hr; time_t time;
 } VitalData;
 
-// 3. 상황 분석 결과 (situ_trans 테이블 매핑)
 typedef struct {
-    int sen_id;         // 센서_id (PK, FK)
-    int wp_id;          // 작업장_id (FK)
-    char detail[201];   // 내용 (VARCHAR2(200))
-    time_t time;        // 시간 (DATETIME 대응)
+    int sen_id; int wp_id; char detail[201]; time_t time;
 } SituData;
 
-// 4. 이벤트/경보 (event_trans 테이블 매핑)
 typedef struct {
-    int dept_id;        // 사번 (PK, FK)
-    int wp_id;          // 작업장_id (FK)
-    char state_code[101]; // 상태 (VARCHAR2(100), FK)
-    char detail[201];   // 내용 (VARCHAR2(200))
-    time_t time;        // 시간 (DATETIME 대응)
+    int dept_id;
+    int wp_id;
+    int status_code;      // 추가: 테스트 코드와의 일관성을 위해 정수형 코드 추가
+    char state_code[101]; 
+    char detail[201];
+    time_t time;
 } EventData;
 
-/* --- [2] 통합 데이터 패키지 (큐 전송용) --- */
+/* --- [2] 통합 데이터 패키지 --- */
 
-typedef enum {
-    TYPE_TH, TYPE_VITAL, TYPE_SITU, TYPE_EVENT
-} DataType;
+typedef enum { TYPE_TH, TYPE_VITAL, TYPE_SITU, TYPE_EVENT } DataType;
 
-// 여러 테이블 데이터를 하나의 큐에서 관리하기 위한 통합 구조체
 typedef struct {
-    DataType type;      // 데이터 종류 구분
+    DataType type;
     union {
-        THData th;
-        VitalData vital;
-        SituData situ;
-        EventData event;
+        THData th; VitalData vital; SituData situ; EventData event;
     } payload;
 } SensorPacket;
 
-/* --- [3] Thread-Safe Queue 및 시스템 함수 --- */
+/* --- [3] Thread-Safe Queue 관련 --- */
 
 #define QUEUE_SIZE 20
 typedef struct {
