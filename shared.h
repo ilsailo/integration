@@ -43,7 +43,8 @@ typedef struct {
 
 /* --- [3] Thread-Safe Queue 관련 --- */
 
-#define QUEUE_SIZE 20
+#define QUEUE_SIZE 2000
+
 typedef struct {
     void* data[QUEUE_SIZE];
     int head, tail, count;
@@ -52,6 +53,7 @@ typedef struct {
 } TSQueue;
 
 extern TSQueue q_th, q_vital, q_db, q_send;
+extern pthread_mutex_t g_mtx;
 
 void q_init(TSQueue *q);
 void q_push(TSQueue *q, void* item);
