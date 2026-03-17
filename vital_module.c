@@ -3,6 +3,7 @@
 #include <arpa/inet.h>
 
 void* vital_module(void* arg) {
+    (void)arg;
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     struct sockaddr_in serv_addr, clnt_addr;
     socklen_t clnt_size = sizeof(clnt_addr);
